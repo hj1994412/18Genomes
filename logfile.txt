@@ -1,0 +1,159 @@
+STARTED 8/20/15 Will Output all scripts run here.
+
+
+150820 21:10
+
+#!/bin/bash
+
+#redoAlign.sh
+
+#redo alignments that didn't work with -m 100 on 17 Aug
+
+#take all numbers that didn't work
+for file in 12 73 74 80 81 82 111 112 113 202 203 204 208 209 210 474 475 476 477 478 479
+do
+#print the number
+echo $file
+#align each one. the -J is job name
+sbatch -J align_$file genomeAlign_last.slurm $file
+done
+
+
+cat $GENOMES/scripts/redoAlign.sh | sed -e "s/150820 21:10/$(date +'%y%m%d %R')/"  >> $GENOMES/logfile.txt
+
+150820 (added manually)
+
+#!/bin/bash
+#
+# genomeAlign_last.slurm from tophat_manyfiles.sbatch example
+#
+#SBATCH -p serial_requeue # Partition
+#SBATCH -n 1              # one core
+#SBATCH -N 1              # on one node
+#SBATCH -t 0-2:00         # Running time of 2 hours
+#SBATCH --mem 10000        # Memory request of 10 GB
+#SBATCH -o lastal_failedredo_%j.out # Standard output
+#SBATCH -e lastal_failedredo_%j.err # Standard error
+
+#find local alignments between query sequences and reference sequences
+lastal -m 1000 $GENOMES/results/hmeldb $GENOMES/data/alignments_fasta/h_melpomene/parts/h_melpomene.part-$1.fasta \
+> h_melpomene_part-$1_alns.maf
+#!/bin/bash
+
+#generalSlurm.slurm  
+#Hopefully, will be able to submi short scripts as slurm jobs without having to make individual files
+
+#SBATCH -n 1
+#SBATCH -t 0-1:00
+#SBATCH --mem=500
+#SBATCH -p serial_requeue
+#SBATCH -o $2.out
+#SBATCH -e $2.err
+
+$1
+########
+
+24 August 2015
+
+#concatenate all .maf files in the array_m100 folder ($GENOMES/results/lastAlignments/array_m1000)
+sbatch -J 'concat' generalSlurm.slurm 'cat *.maf' concatenated.maf
+
+#SACCT info: 46334812         concat serial_re+ mallet_lab          1    RUNNING      0:0
+
+#current state of generalSlurm.slurm:
+
+
+#!/bin/bash
+
+#generalSlurm.slurm  
+#Hopefully, will be able to submi short scripts as slurm jobs without having to make individual files
+
+#SBATCH -n 1
+#SBATCH -t 0-1:00
+#SBATCH --mem=500
+#SBATCH -p serial_requeue
+#SBATCH -o $2.out
+#SBATCH -e $2.err
+
+$1
+
+##NOTES: the $2 in the -o and -e doesn't actually insert the second argument! Annoying...
+
+###
+#Going to try to convert the mafs to sams (and then bams)
+#need to create an index for the referencs so that I can have appropriate headers for my sams/bams.
+
+#in the $GENOMES/data/reference folder:
+sbatch -J 'index' generalSlurm.slurm 'samtools faidx Hmel2.fa' 
+
+SACCT: 46337033          index serial_re+ mallet_lab          1  COMPLETED      0:0 
+
+#Didn't work; something to do with headers...
+#Adam thinks we should fist get a sense of the sizes of our different scaffolds, since it seems like there are a TON of very short ones that may be clogging up our downstream machinery. Made and ran the
+#following scripts to get statistics about the number and sizes of scaffolds:
+
+
+#sends all the simlinks of all the fasta files to the program assemblyStats.slurm, which runs assemblyStat.py 
+for dir in *; do echo $dir; cd $dir; mkdir assemblyStats; cd assemblyStats; sbatch assemblyStats.slurm ../$dir\_copy.fasta; cd ../..; done
+#!/bin/bash
+
+#assemblyStats.slurm
+#submits a batch job to do assemblyStats.py, which outputs 2 csv files - one that has a distribution of scafffold sizes and one that is an inverse density of those sizes
+
+#SBATCH -n 1
+#SBATCH -t 0-1:00
+#SBATCH --mem=500
+#SBATCH -p serial_requeue
+#SBATCH -o Stats_%j.out
+#SBATCH -e Stats_%j.err
+
+assemblyStats.py $1 $(basename $1 _copy.fasta)
+#!/bin/env python
+
+import sys
+import csv
+def write_csv(file, asequence, header=None):
+    fp =  open(file, 'w')
+    a = csv.writer(fp, delimiter=',')
+    if header:
+        a.writerows(header)
+    a.writerows(asequence)
+    fp.close()
+
+outName=sys.argv[2]
+file=sys.argv[1]
+alignment=open(file)
+nlines=0
+count=0
+scaffolds = {}
+
+for line in alignment:
+    if '>' in line:
+        baseCount=0
+        scaffolds[str(line)] = 0
+        current=str(line)
+        count += 1
+        nlines += 1
+    else:
+        scaffolds[current] += len(line)
+        nlines += 1
+mydict={}
+for i in range(50):
+    mydict[i*25]=0
+for scaf in scaffolds:
+    for key in mydict:
+        if scaffolds[scaf] >= key:
+            mydict[key] += 1
+
+densityOut=[]
+for key in mydict:
+    densityOut.append([key,mydict[key],float(mydict[key])/mydict[0]])
+    
+distribOut=[]
+for key in scaffolds:
+    distribOut.append([key,scaffolds[key]])
+
+
+write_csv(outName + "InvDensity.csv",sorted(densityOut), header=[["length","numScaffolds","pctScaffolds"]])
+write_csv(outName + "Distribution.csv", distribOut, header=[["scaffoldID", "length"]])
+
