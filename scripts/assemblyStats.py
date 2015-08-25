@@ -14,7 +14,6 @@ def write_csv(file, asequence, header=None):
 outName=sys.argv[2]
 file=sys.argv[1]
 alignment=open(file,"r")
-output=open(outName+"_clipped.fasta","w")
 nlines=0
 count=0
 scaffolds = {}
