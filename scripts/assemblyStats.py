@@ -10,9 +10,11 @@ def write_csv(file, asequence, header=None):
     a.writerows(asequence)
     fp.close()
 
+
 outName=sys.argv[2]
 file=sys.argv[1]
-alignment=open(file)
+alignment=open(file,"r")
+output=open(outName+"_clipped.fasta","w")
 nlines=0
 count=0
 scaffolds = {}
@@ -23,7 +25,7 @@ for line in alignment:
         scaffolds[str(line)] = 0
         current=str(line)
         count += 1
-        nlines += 1
+        nlines += 1    
     else:
         scaffolds[current] += len(line)
         nlines += 1
