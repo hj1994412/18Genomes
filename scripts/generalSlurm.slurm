@@ -7,7 +7,7 @@
 #SBATCH -t 0-1:00
 #SBATCH --mem=500
 #SBATCH -p serial_requeue
-#SBATCH -o $2.out
-#SBATCH -e $2.err
+#SBATCH -o %j.out
+#SBATCH -e %j.err
 
 $1
