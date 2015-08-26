@@ -9,9 +9,9 @@ import sys
 
 outName=sys.argv[2]
 file=sys.argv[1]
-cutoff=sys.argv[3]
+cutoff=int(sys.argv[3])
 alignment=open(file,"r")
-output=open(outName+"_clipped.fasta","w")
+output=open(outName+"_clipped_"+str(cutoff)+".fasta","w")
 
 toWrite=''
 for line in alignment:
