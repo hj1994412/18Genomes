@@ -29,7 +29,7 @@ for line in alignment:
         scaffolds[current] += len(line)
         nlines += 1
 mydict={}
-for i in range(50):
+for i in range(200):
     mydict[i*25]=0
 for scaf in scaffolds:
     for key in mydict:
