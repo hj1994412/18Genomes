@@ -8,7 +8,8 @@ for line in origin:
             output.write('>'+chrom+'\n')
             currentChrom=chrom
         else:
-            output.write('N'*100)
+            output.write('N'*60)
+            output.write('N'*60)
     else:
         output.write(line)
             
