@@ -37,7 +37,10 @@ ldor_dens=read.csv(file = 'Genomes_fasta/AssemblyStats/l_dorisInvDensity.csv')
 naoe_dist=read.csv(file = 'Genomes_fasta/AssemblyStats/n_aoedeDistribution.csv')
 naoe_dens=read.csv(file = 'Genomes_fasta/AssemblyStats/n_aoedeInvDensity.csv')
 
-
+hmelClip2_dist=read.csv(file = 'Genomes_fasta/AssemblyStats/h_melpomene_clipped.fastaDistribution.csv')
+hmelClip2_dens=read.csv(file = 'Genomes_fasta/AssemblyStats/h_melpomene_clipped.fastaInvDensity.csv')
+hmelClip_dist=read.csv(file = 'Genomes_fasta/AssemblyStats/h_melpomene_clippedDistribution.csv')
+hmelClip_dens=read.csv(file = 'Genomes_fasta/AssemblyStats/h_melpomene_clippedInvDensity.csv')
 #################
 #graph 'em!
 
@@ -45,7 +48,7 @@ par(mfrow=c(1,2))
 
 plotEm <- function(x,y,lab){
   hist(x$length, ylab=lab, xlab="Length", main="Distribution", xlim=c(0,30000), breaks=300)
-  plot(y$length, y$pctScaffolds, type="l", ylim=c(0,1), xlim=c(0,10000), main="Inverse Density", ylab="Percent of scaffolds", xlab="Length")
+  plot(y$length, y$pctScaffolds, type="l", ylim=c(0,1), main="Inverse Density", ylab="Percent of scaffolds", xlab="Length")
   points(y$length, y$pctScaffolds)
 }
 
