@@ -2,156 +2,208 @@
 
 from Bio import SeqIO
 import sys
-import csv
 from operator import itemgetter
 
 mafAlignment=sys.argv[1]
-base=(mafAlignment.split("/")[-1])[:-4]
 discoOutput=sys.argv[2]
 
 
+def addToBedList(bedList, scaf, chromStart,chromEnd,id,length,strand,contig,conStart):
+	'''takes a list of future bed entries, along with a number of attributes for a new entry. 
+	Adds the new bed attributes as a bed-ordered list'''
+        bedList.append([scaf,chromStart,chromEnd,id,length,strand,chromStart,chromEnd,0])
+	if length > bedList[0][4]:
+		bedList[0]=[scaf,chromStart-conStart,0,contig,length,strand,chromStart,chromEnd,0]
+	return bedList
 
-def write_csv(file, asequence, header=None):
-    fp =  open(file, 'w')
-    a = csv.writer(fp, delimiter=',')
-    if header:
-	a.writerows(header)
-    a.writerows(asequence)
-    fp.close()
+class mafAttributes(object):
+	def __init__(self,mafLine):
+	    line=mafLine.split()
+	    try:
+                self.type=line[0]
+                self.label=line[1]
+                try:
+                    self.start=int(line[2])
+                except ValueError:
+                    self.start=0
+                try:
+                    self.end=self.start+int(line[3])
+                except ValueError:
+                    self.end=0
+                try:
+                    self.strand=line[4]
+                except IndexError:
+                    self.strand="NA"
+            except IndexError:
+                self.type="NA"
+                self.label="NA"
+		self.start="NA"
+		self.end="NA"
+		self.length="NA"
+		self.strand="NA"
+		
+	def getType(self):
+		return self.type
+	def getLabel(self):
+		return self.label
+	def getStart(self):
+		return self.start
+	def getEnd(self):
+		return self.end
+	def getLength(self):
+		return (self.getEnd()-self.getStart())
+	def getStrand(self):
+		return self.strand
+	
+
+def mafToBedDict(mafFile):
+	'''  Takes a maf file (like the output of LAST
+		outputs a dictionary. Each key is a different query contig;  the value for each is
+		a list of lists. Each single list contains ordered attributes to write to a bed file'''
+	conDict={}
+	current=[]
+	id=0
+	with open(mafFile, "r") as file:
+		for line in file:
+		  if not "#" in line:
+		      maf=mafAttributes(line)
+    		      if maf.getType() =='a':
+        	          if current != []:
+            		      conDict[contig]=addToBedList(conDict[contig],scaf, chromStart,chromEnd,id,length,strand,contig,conStart)
+        	          current=["occupied"]
+        	
+    		      elif "Hmel" in maf.getLabel():
+        	          chrom=maf.getLabel()[:-3]
+     	  	          scaf=maf.getLabel()
+     	    	          chromStart=maf.getStart()
+      	    	          chromEnd=maf.getEnd()
+       	       	          length=maf.getLength()
+
+    		      elif "flattened" in maf.getLabel():
+        	          id += 1
+        	          contig= maf.getLabel()
+        	          if contig not in conDict.keys():
+        	              conDict[contig] = [[0,0,0,0,0,0,0,0,0],]
+        	          conStart= maf.getStart()
+        	          conEnd= maf.getEnd()
+        	          strand = maf.getStrand()
+        return conDict
 
 
-bests=open(mafAlignment)
+def capBestAlign(fastaEntry,bedEntry):
+    '''takes a specially-formatted bed-type entry and the fasta file that was used as its query
+    returns a bed file where the entire query is placed relative to its best match'''
+    bedEntry[2] = len(fastaEntry) + bedEntry[1]
+    return bedEntry
+    
+def scoreAlign(record,entry):
+    '''takes an alignment and the original query sequence. 
+    assigns a score based on the relative length of the alignmet to the query'''
+    length=entry[4]
+    score=(float(length)/len(record))*1000
+    entry[4]=score
+    if score > 500:
+        entry[8]="0,200,0"
+    elif score > 250:
+        entry[8]="128,255,0"
+    elif score > 125:
+        entry[8]="255,255,51"
+    elif score > 67:
+        entry[8]="255,153,51"
+    else:
+        entry[8]="255,0,0"
+    return entry
 
-#Sort the file into individual contigs
-
-conDict={}
-current=[]
-id=0
-for line in bests:
-    if line[0] =='a':
-        if current != []:
-            try:
-                conDict[contig].append([scaf,chromStart,chromEnd,id,length,strand,chromStart,chromEnd,0])
-            except KeyError:
-                conDict[contig]=[[0,0,0,0,0,0,0,0,0],[scaf,chromStart,chromEnd,id,length,strand,chromStart,chromEnd,0]]
-            if length > conDict[contig][0][4]:
-                conDict[contig][0]=[scaf,chromStart-conStart,0,contig,length,strand,chromStart,chromEnd,0]
-        current=["occupied"]
-    elif "Hmel" in line:
-        chline=line.split()
-        chrom=chline[1][:-3]
-        scaf=chline[1]
-        chromStart=int(chline[2])
-        chromEnd=chromStart+int(chline[3])
-        length=chromEnd-chromStart
-
-    elif "flattened" in line:
-        coline=line.split()
-        id += 1
-        conStart=int(coline[2])
-        conEnd=conStart+int(coline[3])
-        strand = coline[4]
-        contig=coline[1]
-
-d = SeqIO.parse(discoOutput, "fasta")
-for record in d:
-    if record.id in conDict.keys():
-        for entry in conDict[record.id]:
-            if type(entry[3]) == str:
-                entry[2]=len(record)+entry[1]
-            else:
-                length=entry[4]
-                score=(float(length)/len(record))*1000
-                entry[4]=score
-                if score > 500:
-                    entry[8]="0,200,0"
-                elif score > 250:
-                    entry[8]="128,255,0"
-                elif score > 125:
-                    entry[8]="255,255,51"
-                elif score > 67:
-                    entry[8]="255,153,51"
-                else:
-                    entry[8]="255,0,0"
-
-for contig in conDict.keys():
-    overall=conDict[contig][0]
-    conStart=overall[1]
-    conEnd=overall[2]
-    chrom=overall[0]
-    include=[overall,]
+def getBests(bedList):
+    best=bedList[0]
+    chrom=best[0]
+    conStart=best[1]
+    conEnd=best[2]
+    include=[best,]
     allInside=True
-    sameChrom=True
-    sort=sorted(conDict[contig], key=itemgetter(4), reverse=True)
     sumChrom=0
     sumInside=0
     sumLength=0
+    sort=sorted(bedList[1:], key=itemgetter(4), reverse=True)
     for entry in range(len(sort)):
-        if sumLength < 950:
-            if type(sort[entry][3]) == int:
-                include.append(sort[entry])
-                sumLength+=sort[entry][4]
-                if sort[entry][0] != chrom:
-                    sameChrom=False
+        if sumLength<950:
+            include.append(sort[entry])
+            sumLength += sort[entry][4]
+            if sort[entry][0] == chrom:
+                sumChrom += sort[entry][4]
+                if ((sort[entry][1] - conStart) < -250) or ((sort[entry][2] - conEnd) > 250):
+                    allInside = False
                 else:
-                    sumChrom+=sort[entry][4]
-                    if sort[entry][1] - conStart < -250:
-                        allInside=False
-                    elif sort[entry][2] - conEnd > 250:
-                        allInside=False
-                    else:
-                        sumInside += sort[entry][4]
-       			if len(include) == 2 and sumLength>=950:
-                            for repeat in range(entry+1,len(sort)):
-				if sort[repeat][4] >= 900:
-				    include.append(sort[repeat])
-                                    sumLength+=sort[repeat][4]
-				    allInside=False
-				else:
-				    break
-                    
-
-        else:
-            if len(include) == 2:
-                include[0][8]="0,204,0"
-                include[0][4]=1000
-            elif allInside:
-                include[0][8]="128,255,0"
-                include[0][4]=900
-            elif sumLength >= 1900:
-                if len(include) == 3:
-		    include[0][8]="51,255,255"
-                    include[0][4]=400
-		elif len(include) <=5:
-                    include[0][8]="0,128,255"
-                    include[0][4]=300
-                else:
-                    include[0][8]="0,0,204"
-                    include[0][4]=200
-
-            elif sumInside>=750:
-                include[0][8]="255,255,0"
-                include[0][4]=800
-            elif sumInside>=500:
-                include[0][8]="255,153,51"
-                include[0][4]=700
-            elif sumChrom>=750:
-                include[0][8]="255,102,102"
-                include[0][4]=600
+                    sumInside += sort[entry][4]
             else:
-                include[0][8]="204,0,0"
-                include[0][4]=500
-            f=open(contig+".bed", "a+")
-            for i in range(len(include)):
-                toWrite=""
-                for j in range(len(include[i])-1):
-                    toWrite+=(str(include[i][j])+"\t")
-                toWrite+=(str(include[i][-1]+"\n"))
-                f.write(toWrite)
+                allInside = False
+        elif len(include) == 2:
+            for repeat in range(entry,len(sort)):
+                if sort[repeat][4] >= 900:
+                    include.append(sort[repeat])
+                    sumLength += sort[repeat][4]
+                    allInside=False
+                else:
+                    break
             break
+    category = categorizeBest(include,allInside, sumLength, sumInside, sumChrom)
+    score=category[0]
+    colorCode=category[1]
+    include[0][4] = score
+    include[0][8] = colorCode
+    return include
+
+def categorizeBest(include,allInside, sumLength, sumInside, sumChrom):
+    if len(include) == 2:
+        return [1000,"0,204,0"]
+    elif allInside:
+        return [900, "128,255,0"]
+    elif sumLength >= 1900:
+        if len(include) == 3:
+            return [400, "51,255,255"]
+        elif len(include) <= 5:
+            return [300,"0,128,255"]
+        else:
+            return [200,"0,0,204"]
+    elif sumInside >= 750:
+        return [800,"255,255,0"]
+    elif sumInside>=500:
+        return [700,"255,153,51"]
+    elif sumChrom >= 750:
+        return [600, "255,102,102"]
+    else:
+        return [500, "204,0,0"]
+
+
+def scoreAll(discoOutput,conDict):
+    d = SeqIO.parse(discoOutput, "fasta")
+    for record in d:
+        if record.id in conDict.keys():
+            conDict[record.id][0]=capBestAlign(record,conDict[record.id][0])
+            for entry in range(1,len(conDict[record.id])):
+                conDict[record.id][entry]=scoreAlign(record,conDict[record.id][entry])
+            conDict[record.id]=getBests(conDict[record.id])
+    return conDict
+
+def writeToBed(bedList): 
+    name=bedList[0][3]          
+    f=open(name+".bed", "a+")
+    for i in range(len(bedList)):
+        toWrite=""
+        for j in range(len(bedList[i])-1):
+            toWrite+=(str(bedList[i][j])+"\t")
+        toWrite+=(str(bedList[i][-1]+"\n"))
+        f.write(toWrite)
+    f.close()
+
             
-
-
+def runAll(mafAlignment,discoOutput):
+    conDict = mafToBedDict(mafAlignment)
+    scoreDict = scoreAll(discoOutput,conDict)
+    for key in scoreDict.keys():
+        writeToBed(scoreDict[key])
+        
+runAll(mafAlignment,discoOutput)
 
             
 
