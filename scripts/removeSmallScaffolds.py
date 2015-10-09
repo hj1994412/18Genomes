@@ -18,8 +18,8 @@ for line in alignment:
     if '>' in line:
         if len(toWrite) >= cutoff:
             output.write(toWrite)
-        toWrite=str(line)+'\n'
+        toWrite=str(line)
         current=str(line)
     else:
-        toWrite+=str(line)+'\n'
+        toWrite+=str(line)
 output.close()

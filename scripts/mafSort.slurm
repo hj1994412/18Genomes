@@ -12,19 +12,7 @@
 
 export TMPDIR=/scratch
 
-todo=$(seq 50)
+maf-sort.sh $1 > $1.sort.maf
 
-for i in $todo
-do
-  echo $i
-  cat *part-$i\_bestAlign.maf >> firstFifty.maf
-done
 
-echo "done with cat"
-
-maf-sort.sh firstFifty.maf > firstFiftySort.maf
-
-echo "done with sort"
-
-last-dotplot.py firstFiftySort.maf firstFifty.png
 

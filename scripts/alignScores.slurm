@@ -2,15 +2,13 @@
 
 #alignScores.slurm  
 
+#SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -t 0-1:00
-#SBATCH --mem=500
+#SBATCH --mem=50000
 #SBATCH -p serial_requeue
-#SBATCH -o %j.out
-#SBATCH -e %j.err
+#SBATCH -o alignScores.out
+#SBATCH -e alignScores.err
 
-grep flattened $1 | awk '{print $2}' | uniq > $GENOMES/tmp.txt
+alignScores.py $1
 
-alignScores.py $GENOMES/tmp.txt $1
-
-rm $GENOMES/tmp.txt

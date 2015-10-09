@@ -11,4 +11,4 @@
 #SBATCH -o aVl.out
 #SBATCH -e aVl.err
 
-alignmentVsLength.py $1 $2 "h_melpomene_alignVsLength"
+alignmentVsLength.py $1 $2 "alignVsLength_Hmel"

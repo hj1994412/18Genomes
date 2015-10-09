@@ -45,7 +45,7 @@ EOF
 done
 shift $((OPTIND - 1))
 
-baseField=$((6 * $whichSequence))
+baseField=$((6 * $whichSequence)) #CHANGED FROM 6 TO 8 BECAUSE IT WAS SORTING BY THE WRONG FIELD
 a=$(($baseField - 4))
 a=$a,$a
 b=$(($baseField - 1))

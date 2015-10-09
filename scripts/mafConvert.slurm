@@ -10,5 +10,6 @@
 #SBATCH --mem=500
 #SBATCH -o mafToSam_%j.out
 #SBATCH	-e mafToSam_%j.err
+#SBATCH -t 0-05:00
 
-maf-convert.py sam maf/$1 > sam/$2.sam | samtools view -bt $GENOMES/data/reference/Hmel2.fa.fai - > bam/$2.bam 
+maf-convert.py sam $1 > $1.sam 

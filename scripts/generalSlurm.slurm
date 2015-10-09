@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#generalSlurm.slurm  
-#Hopefully, will be able to submi short scripts as slurm jobs without having to make individual files
+#scafToChrom.slurm  
+#convert the Hmel2 genome fasta file to be sorted by chromosomes
 
 #SBATCH -n 1
 #SBATCH -t 0-1:00
-#SBATCH --mem=500
+#SBATCH --mem=1000
 #SBATCH -p serial_requeue
-#SBATCH -o %j.out
-#SBATCH -e %j.err
+#SBATCH -o scafToChrom.out
+#SBATCH -e scafToChrom.err
 
-$1
+scafToChrom.py
